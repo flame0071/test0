@@ -661,8 +661,14 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.firestore();
+        try {
+            firebase.initializeApp(firebaseConfig);
+            var db = firebase.firestore();
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            var db = null;
+        }
 
         // Global variables
         var transactions = [];
@@ -670,9 +676,27 @@
         var transactionId = 0;
         var isOnline = navigator.onLine;
         var syncQueue = [];
+        var db = null;
 
         // Initialize app when page loads
         window.addEventListener('load', function() {
+            // Initialize Firebase first
+            try {
+                if (typeof firebase !== 'undefined') {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    isOnline = true;
+                    console.log('Firebase initialized successfully');
+                } else {
+                    console.warn('Firebase not available');
+                    isOnline = false;
+                }
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                db = null;
+                isOnline = false;
+            }
+
             setupEventListeners();
             loadData();
             updateDisplay();
@@ -684,12 +708,16 @@
         function setupEventListeners() {
             // Online/offline status
             window.addEventListener('online', function() {
-                isOnline = true;
-                updateSyncStatus();
-                syncToFirebase();
+                console.log('Browser went online');
+                if (db) {
+                    isOnline = true;
+                    updateSyncStatus();
+                    syncToFirebase();
+                }
             });
 
             window.addEventListener('offline', function() {
+                console.log('Browser went offline');
                 isOnline = false;
                 updateSyncStatus();
             });
@@ -766,12 +794,18 @@
 
         function updateSyncStatus() {
             var status = document.getElementById('syncStatus');
-            if (isOnline) {
+            if (isOnline && db) {
                 status.textContent = 'Online';
                 status.className = 'sync-status online';
+                console.log('Status: Online with Firebase');
+            } else if (navigator.onLine && !db) {
+                status.textContent = 'Local Only';
+                status.className = 'sync-status offline';
+                console.log('Status: Online but Firebase not available');
             } else {
                 status.textContent = 'Offline';
                 status.className = 'sync-status offline';
+                console.log('Status: Offline');
             }
         }
 
@@ -782,7 +816,10 @@
         }
 
         function syncToFirebase() {
-            if (!isOnline) return;
+            if (!isOnline || !db) {
+                console.log('Cannot sync: offline or no Firebase connection');
+                return;
+            }
 
             setSyncingStatus();
             
@@ -797,6 +834,7 @@
                 .then(function() {
                     updateSyncStatus();
                     console.log('Data synced to Firebase successfully');
+                    showToast('Data synced to cloud!', 'success');
                 })
                 .catch(function(error) {
                     console.error('Sync error:', error);
@@ -806,7 +844,8 @@
         }
 
         function loadFromFirebase() {
-            if (!isOnline) {
+            if (!isOnline || !db) {
+                console.log('Cannot load from Firebase: offline or no connection');
                 loadLocalData();
                 return;
             }
@@ -822,13 +861,15 @@
                         transactionId = data.transactionId || 0;
                         updateDisplay();
                         showToast('Data loaded from cloud!', 'success');
+                        console.log('Data loaded from Firebase successfully');
                     } else {
+                        console.log('No Firebase data found, loading local data');
                         loadLocalData();
                     }
                     updateSyncStatus();
                 })
                 .catch(function(error) {
-                    console.error('Load error:', error);
+                    console.error('Firebase load error:', error);
                     loadLocalData();
                     updateSyncStatus();
                     showToast('Loading from local storage', 'warning');
@@ -898,11 +939,13 @@
                 // Try localStorage first
                 if (typeof Storage !== "undefined" && window.localStorage) {
                     localStorage.setItem('printingData', JSON.stringify(data));
+                    console.log('Data saved to localStorage');
                 }
                 
                 // Fallback to sessionStorage
                 if (typeof Storage !== "undefined" && window.sessionStorage) {
                     sessionStorage.setItem('printingData', JSON.stringify(data));
+                    console.log('Data saved to sessionStorage');
                 }
                 
             } catch (error) {
@@ -911,10 +954,12 @@
             }
 
             // Sync to Firebase if online (non-blocking)
-            if (isOnline) {
+            if (isOnline && db) {
                 setTimeout(function() {
                     syncToFirebase();
                 }, 100);
+            } else {
+                console.log('Firebase sync skipped: offline or no connection');
             }
         }
 
