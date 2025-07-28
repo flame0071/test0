@@ -796,7 +796,7 @@
             db.collection('printingData').doc('businessData').set(data)
                 .then(function() {
                     updateSyncStatus();
-                    showToast('Data synced to cloud!', 'success');
+                    console.log('Data synced to Firebase successfully');
                 })
                 .catch(function(error) {
                     console.error('Sync error:', error);
@@ -847,8 +847,17 @@
             try {
                 var data = null;
                 
+                // Try localStorage first
                 if (typeof Storage !== "undefined" && window.localStorage) {
                     var stored = localStorage.getItem('printingData');
+                    if (stored) {
+                        data = JSON.parse(stored);
+                    }
+                }
+                
+                // Try sessionStorage if localStorage failed
+                if (!data && typeof Storage !== "undefined" && window.sessionStorage) {
+                    var stored = sessionStorage.getItem('printingData');
                     if (stored) {
                         data = JSON.parse(stored);
                     }
@@ -858,6 +867,13 @@
                     transactions = data.transactions || [];
                     productCosts = data.productCosts || {};
                     transactionId = data.transactionId || 0;
+                    console.log('Data loaded locally:', { transactions: transactions.length, products: Object.keys(productCosts).length });
+                } else {
+                    // Initialize with empty data
+                    transactions = [];
+                    productCosts = {};
+                    transactionId = 0;
+                    console.log('No local data found, initializing empty');
                 }
                 
             } catch (error) {
@@ -865,6 +881,7 @@
                 transactions = [];
                 productCosts = {};
                 transactionId = 0;
+                showToast('Error loading data', 'error');
             }
         }
 
@@ -878,17 +895,26 @@
                     lastSaved: new Date().toISOString()
                 };
                 
+                // Try localStorage first
                 if (typeof Storage !== "undefined" && window.localStorage) {
                     localStorage.setItem('printingData', JSON.stringify(data));
                 }
                 
+                // Fallback to sessionStorage
+                if (typeof Storage !== "undefined" && window.sessionStorage) {
+                    sessionStorage.setItem('printingData', JSON.stringify(data));
+                }
+                
             } catch (error) {
                 console.error('Local save error:', error);
+                showToast('Error saving data locally', 'error');
             }
 
-            // Sync to Firebase if online
+            // Sync to Firebase if online (non-blocking)
             if (isOnline) {
-                syncToFirebase();
+                setTimeout(function() {
+                    syncToFirebase();
+                }, 100);
             }
         }
 
@@ -900,6 +926,7 @@
 
         function handleProductSubmit(e) {
             e.preventDefault();
+            console.log('Product form submitted');
             
             var productName = document.getElementById('productName').value;
             var materialCost = parseFloat(document.getElementById('materialCost').value) || 0;
@@ -908,21 +935,26 @@
             
             if (!productName) {
                 showToast('Please select a product name', 'error');
-                return;
+                return false;
             }
             
             var totalCost = materialCost + laborCost + overheadCost;
             productCosts[productName] = totalCost;
+            
+            console.log('Product cost saved:', productName, totalCost);
             
             saveData();
             updateDisplay();
             this.reset();
             document.getElementById('costBreakdown').style.display = 'none';
             showToast('Product cost saved successfully!', 'success');
+            
+            return false;
         }
 
         function handleSalesSubmit(e) {
             e.preventDefault();
+            console.log('Sales form submitted');
             
             var customerName = document.getElementById('customerName').value.trim();
             var serviceType = document.getElementById('serviceType').value;
@@ -932,7 +964,7 @@
             
             if (!customerName || !serviceType || !quantity || !unitPrice || !saleDate) {
                 showToast('Please fill in all fields', 'error');
-                return;
+                return false;
             }
             
             var totalAmount = quantity * unitPrice;
@@ -952,16 +984,21 @@
             };
 
             transactions.unshift(transaction);
+            console.log('Sale added:', transaction);
+            
             saveData();
             updateDisplay();
             this.reset();
             setTodayDates();
             document.getElementById('saleMargin').style.display = 'none';
             showToast('Sale added successfully!', 'success');
+            
+            return false;
         }
 
         function handleExpenseSubmit(e) {
             e.preventDefault();
+            console.log('Expense form submitted');
             
             var description = document.getElementById('expenseDescription').value.trim();
             var category = document.getElementById('expenseCategory').value;
@@ -970,7 +1007,7 @@
             
             if (!description || !category || !amount || !expenseDate) {
                 showToast('Please fill in all fields', 'error');
-                return;
+                return false;
             }
 
             var transaction = {
@@ -983,11 +1020,15 @@
             };
 
             transactions.unshift(transaction);
+            console.log('Expense added:', transaction);
+            
             saveData();
             updateDisplay();
             this.reset();
             setTodayDates();
             showToast('Expense added successfully!', 'success');
+            
+            return false;
         }
 
         function updateDisplay() {
