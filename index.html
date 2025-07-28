@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Printing Business Tracker Pro</title>
+    <title>Printing Business Tracker - Firebase Sync</title>
     <style>
         * {
             margin: 0;
@@ -45,32 +45,85 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
             border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .sync-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-indicator.offline {
+            background: #e74c3c;
+            animation: none;
+        }
+
+        .sync-indicator.syncing {
+            background: #f39c12;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .firebase-config {
+            background: rgba(231, 76, 60, 0.1);
+            border: 2px dashed #e74c3c;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .config-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .config-input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
             font-size: 12px;
+        }
+
+        .config-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
-        .sync-status.online {
-            background: rgba(39, 174, 96, 0.9);
-            color: white;
-        }
-
-        .sync-status.offline {
-            background: rgba(231, 76, 60, 0.9);
-            color: white;
-        }
-
-        .sync-status.syncing {
-            background: rgba(243, 156, 18, 0.9);
-            color: white;
+        .config-btn:hover {
+            background: #c0392b;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             padding: 30px;
             background: rgba(52, 152, 219, 0.05);
@@ -95,7 +148,6 @@
         .stat-card.expenses { border-left-color: #e74c3c; }
         .stat-card.profit { border-left-color: #f39c12; }
         .stat-card.orders { border-left-color: #9b59b6; }
-        .stat-card.margin { border-left-color: #3498db; }
 
         .stat-value {
             font-size: 2rem;
@@ -142,12 +194,6 @@
             gap: 15px;
         }
 
-        .form-triple {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-        }
-
         label {
             display: block;
             margin-bottom: 5px;
@@ -189,20 +235,19 @@
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .btn-expense {
             background: linear-gradient(135deg, #e74c3c, #c0392b);
         }
 
         .btn-expense:hover {
             box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-        }
-
-        .btn-product {
-            background: linear-gradient(135deg, #9b59b6, #8e44ad);
-        }
-
-        .btn-product:hover {
-            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
         }
 
         .export-buttons {
@@ -264,6 +309,16 @@
             background: rgba(52, 152, 219, 0.05);
         }
 
+        .transaction-table tr.new-transaction {
+            background: rgba(39, 174, 96, 0.1);
+            animation: highlight 2s ease-out;
+        }
+
+        @keyframes highlight {
+            0% { background: rgba(39, 174, 96, 0.3); }
+            100% { background: transparent; }
+        }
+
         .amount-positive {
             color: #27ae60;
             font-weight: bold;
@@ -289,44 +344,6 @@
             background: #c0392b;
         }
 
-        .cost-breakdown {
-            background: rgba(52, 152, 219, 0.05);
-            border: 1px solid rgba(52, 152, 219, 0.2);
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .cost-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .cost-item.total {
-            border-top: 1px solid #3498db;
-            padding-top: 10px;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .profit-margin {
-            background: rgba(39, 174, 96, 0.1);
-            border: 1px solid rgba(39, 174, 96, 0.3);
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 10px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .profit-margin.negative {
-            background: rgba(231, 76, 60, 0.1);
-            border-color: rgba(231, 76, 60, 0.3);
-            color: #e74c3c;
-        }
-
         .toast {
             position: fixed;
             top: 20px;
@@ -350,6 +367,7 @@
         .toast.success { background: #27ae60; }
         .toast.error { background: #e74c3c; }
         .toast.warning { background: #f39c12; }
+        .toast.info { background: #3498db; }
 
         @media (max-width: 768px) {
             .main-content {
@@ -364,7 +382,7 @@
                 padding: 20px;
             }
             
-            .form-row, .form-triple {
+            .form-row {
                 grid-template-columns: 1fr;
             }
             
@@ -377,9 +395,64 @@
             }
             
             .sync-status {
-                position: static;
+                position: relative;
+                top: auto;
+                right: auto;
                 margin-top: 10px;
-                display: inline-block;
+                justify-content: center;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+            
+            .transaction-table {
+                font-size: 11px;
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            .transaction-table th,
+            .transaction-table td {
+                padding: 6px 8px;
+                min-width: 80px;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .export-buttons {
+                justify-content: center;
+            }
+            
+            .btn-export, .btn-clear {
+                font-size: 11px;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            body {
+                padding: 10px;
             }
         }
     </style>
@@ -387,9 +460,26 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="sync-status" id="syncStatus">Offline</div>
-            <h1>🖨️ Printing Business Tracker Pro</h1>
-            <p>Track sales, expenses, product costs, and profits with cloud sync</p>
+            <h1>🖨️ Printing Business Tracker</h1>
+            <p>Real-time syncing with Firebase</p>
+            <div class="sync-status">
+                <div class="sync-indicator" id="syncIndicator"></div>
+                <span id="syncStatus">Connecting...</span>
+            </div>
+        </div>
+
+        <div class="firebase-config" id="firebaseConfig">
+            <h3>🔥 Firebase Configuration Required</h3>
+            <p>Please enter your Firebase project configuration to enable real-time syncing:</p>
+            <div class="config-form">
+                <input type="text" class="config-input" id="apiKey" placeholder="API Key">
+                <input type="text" class="config-input" id="authDomain" placeholder="Auth Domain (yourproject.firebaseapp.com)">
+                <input type="text" class="config-input" id="projectId" placeholder="Project ID">
+                <input type="text" class="config-input" id="storageBucket" placeholder="Storage Bucket (yourproject.appspot.com)">
+                <input type="text" class="config-input" id="messagingSenderId" placeholder="Messaging Sender ID">
+                <input type="text" class="config-input" id="appId" placeholder="App ID">
+            </div>
+            <button class="config-btn" onclick="initializeFirebase()">Connect to Firebase</button>
         </div>
 
         <div class="stats-grid">
@@ -409,67 +499,9 @@
                 <div class="stat-value" id="totalOrders">0</div>
                 <div class="stat-label">Total Orders</div>
             </div>
-            <div class="stat-card margin">
-                <div class="stat-value" id="profitMargin">0%</div>
-                <div class="stat-label">Profit Margin</div>
-            </div>
         </div>
 
         <div class="main-content">
-            <div class="section">
-                <h2>🛍️ Product Cost Management</h2>
-                <form id="productForm">
-                    <div class="form-group">
-                        <label for="productName">Product Name</label>
-                        <select id="productName" required>
-                            <option value="">Select Product</option>
-                            <option value="Business Cards">Business Cards</option>
-                            <option value="Flyers">Flyers</option>
-                            <option value="Banners">Banners</option>
-                            <option value="Brochures">Brochures</option>
-                            <option value="Posters">Posters</option>
-                            <option value="Invitations">Invitations</option>
-                            <option value="Stickers">Stickers</option>
-                            <option value="ID Cards">ID Cards</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-triple">
-                        <div class="form-group">
-                            <label for="materialCost">Material Cost (₱)</label>
-                            <input type="number" id="materialCost" min="0" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="laborCost">Labor Cost (₱)</label>
-                            <input type="number" id="laborCost" min="0" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="overheadCost">Overhead (₱)</label>
-                            <input type="number" id="overheadCost" min="0" step="0.01" required>
-                        </div>
-                    </div>
-                    <div class="cost-breakdown" id="costBreakdown" style="display: none;">
-                        <div class="cost-item">
-                            <span>Material Cost:</span>
-                            <span id="displayMaterial">₱0.00</span>
-                        </div>
-                        <div class="cost-item">
-                            <span>Labor Cost:</span>
-                            <span id="displayLabor">₱0.00</span>
-                        </div>
-                        <div class="cost-item">
-                            <span>Overhead Cost:</span>
-                            <span id="displayOverhead">₱0.00</span>
-                        </div>
-                        <div class="cost-item total">
-                            <span>Total Cost:</span>
-                            <span id="displayTotal">₱0.00</span>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-product">Save Product Cost</button>
-                </form>
-            </div>
-
             <div class="section">
                 <h2>📈 Add Sale</h2>
                 <form id="salesForm">
@@ -508,10 +540,7 @@
                             <input type="date" id="saleDate" required>
                         </div>
                     </div>
-                    <div class="profit-margin" id="saleMargin" style="display: none;">
-                        <span>Estimated Profit Margin: <span id="marginValue">0%</span></span>
-                    </div>
-                    <button type="submit" class="btn">Add Sale</button>
+                    <button type="submit" class="btn" id="addSaleBtn">Add Sale</button>
                 </form>
             </div>
 
@@ -547,35 +576,8 @@
                         <label for="expenseDate">Date</label>
                         <input type="date" id="expenseDate" required>
                     </div>
-                    <button type="submit" class="btn btn-expense">Add Expense</button>
+                    <button type="submit" class="btn btn-expense" id="addExpenseBtn">Add Expense</button>
                 </form>
-            </div>
-
-            <div class="section transactions">
-                <h2>🛍️ Product Costs</h2>
-                <div class="export-buttons">
-                    <button class="btn btn-export" onclick="exportToCSV('products')">Export Products to CSV</button>
-                    <button class="btn btn-clear" onclick="clearProductsData()">Clear Products</button>
-                </div>
-                <table class="transaction-table">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Material Cost</th>
-                            <th>Labor Cost</th>
-                            <th>Overhead</th>
-                            <th>Total Cost</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="productsList">
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 30px; color: #666;">
-                                No product costs set. Add your first product cost above!
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
 
             <div class="section transactions">
@@ -593,14 +595,12 @@
                             <th>Quantity</th>
                             <th>Unit Price</th>
                             <th>Total</th>
-                            <th>Cost</th>
-                            <th>Profit</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="salesList">
                         <tr>
-                            <td colspan="9" style="text-align: center; padding: 30px; color: #666;">
+                            <td colspan="7" style="text-align: center; padding: 30px; color: #666;">
                                 No sales yet. Add your first sale above!
                             </td>
                         </tr>
@@ -644,324 +644,33 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-firestore-compat.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
 
     <script>
-        // Firebase configuration
-        var firebaseConfig = {
-            apiKey: "AIzaSyCAQkleTFWyoEcCNIeYzpZ1NwcEHv5NN0U",
-            authDomain: "flame143-a5106.firebaseapp.com",
-            projectId: "flame143-a5106",
-            storageBucket: "flame143-a5106.firebasestorage.app",
-            messagingSenderId: "243471809617",
-            appId: "1:243471809617:web:8ea9a5e8de72c4f5b6cc70",
-            measurementId: "G-XN9SZ6F94M"
-        };
-
-        // Initialize Firebase
-        try {
-            firebase.initializeApp(firebaseConfig);
-            var db = firebase.firestore();
-            console.log('Firebase initialized successfully');
-        } catch (error) {
-            console.error('Firebase initialization error:', error);
-            var db = null;
-        }
-
-        // Global variables
         var transactions = [];
-        var productCosts = {};
-        var transactionId = 0;
-        var isOnline = navigator.onLine;
-        var syncQueue = [];
         var db = null;
+        var isConnected = false;
+        var transactionIdCounter = 0;
 
         // Initialize app when page loads
         window.addEventListener('load', function() {
-            // Initialize Firebase first
-            try {
-                if (typeof firebase !== 'undefined') {
-                    firebase.initializeApp(firebaseConfig);
-                    db = firebase.firestore();
-                    isOnline = true;
-                    console.log('Firebase initialized successfully');
-                } else {
-                    console.warn('Firebase not available');
-                    isOnline = false;
-                }
-            } catch (error) {
-                console.error('Firebase initialization error:', error);
-                db = null;
-                isOnline = false;
-            }
-
-            setupEventListeners();
-            loadData();
-            updateDisplay();
             setTodayDates();
-            updateSyncStatus();
-            setupProductCostCalculator();
+            loadLocalData();
+            updateDisplay();
+            
+            // Check if Firebase config exists in localStorage
+            var savedConfig = localStorage.getItem('firebaseConfig');
+            if (savedConfig) {
+                try {
+                    var config = JSON.parse(savedConfig);
+                    initializeFirebaseWithConfig(config);
+                } catch (e) {
+                    console.error('Error loading saved config:', e);
+                }
+            }
         });
-
-        function setupEventListeners() {
-            // Online/offline status
-            window.addEventListener('online', function() {
-                console.log('Browser went online');
-                if (db) {
-                    isOnline = true;
-                    updateSyncStatus();
-                    syncToFirebase();
-                }
-            });
-
-            window.addEventListener('offline', function() {
-                console.log('Browser went offline');
-                isOnline = false;
-                updateSyncStatus();
-            });
-
-            // Form event listeners
-            document.getElementById('productForm').addEventListener('submit', handleProductSubmit);
-            document.getElementById('salesForm').addEventListener('submit', handleSalesSubmit);
-            document.getElementById('expenseForm').addEventListener('submit', handleExpenseSubmit);
-        }
-
-        function setupProductCostCalculator() {
-            var materialCost = document.getElementById('materialCost');
-            var laborCost = document.getElementById('laborCost');
-            var overheadCost = document.getElementById('overheadCost');
-
-            [materialCost, laborCost, overheadCost].forEach(function(input) {
-                input.addEventListener('input', updateCostBreakdown);
-            });
-
-            // Sales form calculator
-            var serviceType = document.getElementById('serviceType');
-            var quantity = document.getElementById('quantity');
-            var unitPrice = document.getElementById('unitPrice');
-
-            [serviceType, quantity, unitPrice].forEach(function(input) {
-                input.addEventListener('input', calculateSaleMargin);
-            });
-        }
-
-        function updateCostBreakdown() {
-            var material = parseFloat(document.getElementById('materialCost').value) || 0;
-            var labor = parseFloat(document.getElementById('laborCost').value) || 0;
-            var overhead = parseFloat(document.getElementById('overheadCost').value) || 0;
-            var total = material + labor + overhead;
-
-            if (material > 0 || labor > 0 || overhead > 0) {
-                document.getElementById('costBreakdown').style.display = 'block';
-                document.getElementById('displayMaterial').textContent = formatCurrency(material);
-                document.getElementById('displayLabor').textContent = formatCurrency(labor);
-                document.getElementById('displayOverhead').textContent = formatCurrency(overhead);
-                document.getElementById('displayTotal').textContent = formatCurrency(total);
-            } else {
-                document.getElementById('costBreakdown').style.display = 'none';
-            }
-        }
-
-        function calculateSaleMargin() {
-            var serviceType = document.getElementById('serviceType').value;
-            var quantity = parseInt(document.getElementById('quantity').value) || 1;
-            var unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
-
-            if (!serviceType || !productCosts[serviceType] || unitPrice === 0) {
-                document.getElementById('saleMargin').style.display = 'none';
-                return;
-            }
-
-            var totalCost = productCosts[serviceType] * quantity;
-            var totalRevenue = unitPrice * quantity;
-            var profit = totalRevenue - totalCost;
-            var margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
-
-            var marginElement = document.getElementById('saleMargin');
-            var marginValue = document.getElementById('marginValue');
-
-            marginElement.style.display = 'block';
-            marginValue.textContent = margin.toFixed(1) + '%';
-
-            if (margin < 0) {
-                marginElement.className = 'profit-margin negative';
-            } else {
-                marginElement.className = 'profit-margin';
-            }
-        }
-
-        function updateSyncStatus() {
-            var status = document.getElementById('syncStatus');
-            if (isOnline && db) {
-                status.textContent = 'Online';
-                status.className = 'sync-status online';
-                console.log('Status: Online with Firebase');
-            } else if (navigator.onLine && !db) {
-                status.textContent = 'Local Only';
-                status.className = 'sync-status offline';
-                console.log('Status: Online but Firebase not available');
-            } else {
-                status.textContent = 'Offline';
-                status.className = 'sync-status offline';
-                console.log('Status: Offline');
-            }
-        }
-
-        function setSyncingStatus() {
-            var status = document.getElementById('syncStatus');
-            status.textContent = 'Syncing...';
-            status.className = 'sync-status syncing';
-        }
-
-        function syncToFirebase() {
-            if (!isOnline || !db) {
-                console.log('Cannot sync: offline or no Firebase connection');
-                return;
-            }
-
-            setSyncingStatus();
-            
-            var data = {
-                transactions: transactions,
-                productCosts: productCosts,
-                transactionId: transactionId,
-                lastSynced: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            db.collection('printingData').doc('businessData').set(data)
-                .then(function() {
-                    updateSyncStatus();
-                    console.log('Data synced to Firebase successfully');
-                    showToast('Data synced to cloud!', 'success');
-                })
-                .catch(function(error) {
-                    console.error('Sync error:', error);
-                    updateSyncStatus();
-                    showToast('Sync failed. Data saved locally.', 'warning');
-                });
-        }
-
-        function loadFromFirebase() {
-            if (!isOnline || !db) {
-                console.log('Cannot load from Firebase: offline or no connection');
-                loadLocalData();
-                return;
-            }
-
-            setSyncingStatus();
-            
-            db.collection('printingData').doc('businessData').get()
-                .then(function(doc) {
-                    if (doc.exists) {
-                        var data = doc.data();
-                        transactions = data.transactions || [];
-                        productCosts = data.productCosts || {};
-                        transactionId = data.transactionId || 0;
-                        updateDisplay();
-                        showToast('Data loaded from cloud!', 'success');
-                        console.log('Data loaded from Firebase successfully');
-                    } else {
-                        console.log('No Firebase data found, loading local data');
-                        loadLocalData();
-                    }
-                    updateSyncStatus();
-                })
-                .catch(function(error) {
-                    console.error('Firebase load error:', error);
-                    loadLocalData();
-                    updateSyncStatus();
-                    showToast('Loading from local storage', 'warning');
-                });
-        }
-
-        function loadData() {
-            if (isOnline) {
-                loadFromFirebase();
-            } else {
-                loadLocalData();
-            }
-        }
-
-        function loadLocalData() {
-            try {
-                var data = null;
-                
-                // Try localStorage first
-                if (typeof Storage !== "undefined" && window.localStorage) {
-                    var stored = localStorage.getItem('printingData');
-                    if (stored) {
-                        data = JSON.parse(stored);
-                    }
-                }
-                
-                // Try sessionStorage if localStorage failed
-                if (!data && typeof Storage !== "undefined" && window.sessionStorage) {
-                    var stored = sessionStorage.getItem('printingData');
-                    if (stored) {
-                        data = JSON.parse(stored);
-                    }
-                }
-                
-                if (data) {
-                    transactions = data.transactions || [];
-                    productCosts = data.productCosts || {};
-                    transactionId = data.transactionId || 0;
-                    console.log('Data loaded locally:', { transactions: transactions.length, products: Object.keys(productCosts).length });
-                } else {
-                    // Initialize with empty data
-                    transactions = [];
-                    productCosts = {};
-                    transactionId = 0;
-                    console.log('No local data found, initializing empty');
-                }
-                
-            } catch (error) {
-                console.error('Local load error:', error);
-                transactions = [];
-                productCosts = {};
-                transactionId = 0;
-                showToast('Error loading data', 'error');
-            }
-        }
-
-        function saveData() {
-            // Save locally first
-            try {
-                var data = {
-                    transactions: transactions,
-                    productCosts: productCosts,
-                    transactionId: transactionId,
-                    lastSaved: new Date().toISOString()
-                };
-                
-                // Try localStorage first
-                if (typeof Storage !== "undefined" && window.localStorage) {
-                    localStorage.setItem('printingData', JSON.stringify(data));
-                    console.log('Data saved to localStorage');
-                }
-                
-                // Fallback to sessionStorage
-                if (typeof Storage !== "undefined" && window.sessionStorage) {
-                    sessionStorage.setItem('printingData', JSON.stringify(data));
-                    console.log('Data saved to sessionStorage');
-                }
-                
-            } catch (error) {
-                console.error('Local save error:', error);
-                showToast('Error saving data locally', 'error');
-            }
-
-            // Sync to Firebase if online (non-blocking)
-            if (isOnline && db) {
-                setTimeout(function() {
-                    syncToFirebase();
-                }, 100);
-            } else {
-                console.log('Firebase sync skipped: offline or no connection');
-            }
-        }
 
         function setTodayDates() {
             var today = new Date().toISOString().split('T')[0];
@@ -969,37 +678,150 @@
             document.getElementById('expenseDate').value = today;
         }
 
-        function handleProductSubmit(e) {
-            e.preventDefault();
-            console.log('Product form submitted');
-            
-            var productName = document.getElementById('productName').value;
-            var materialCost = parseFloat(document.getElementById('materialCost').value) || 0;
-            var laborCost = parseFloat(document.getElementById('laborCost').value) || 0;
-            var overheadCost = parseFloat(document.getElementById('overheadCost').value) || 0;
-            
-            if (!productName) {
-                showToast('Please select a product name', 'error');
-                return false;
+        function initializeFirebase() {
+            var config = {
+                apiKey: document.getElementById('apiKey').value.trim(),
+                authDomain: document.getElementById('authDomain').value.trim(),
+                projectId: document.getElementById('projectId').value.trim(),
+                storageBucket: document.getElementById('storageBucket').value.trim(),
+                messagingSenderId: document.getElementById('messagingSenderId').value.trim(),
+                appId: document.getElementById('appId').value.trim()
+            };
+
+            // Validate required fields
+            if (!config.apiKey || !config.authDomain || !config.projectId || !config.appId) {
+                showToast('Please fill in all required Firebase configuration fields', 'error');
+                return;
             }
+
+            // Save config to localStorage
+            localStorage.setItem('firebaseConfig', JSON.stringify(config));
             
-            var totalCost = materialCost + laborCost + overheadCost;
-            productCosts[productName] = totalCost;
-            
-            console.log('Product cost saved:', productName, totalCost);
-            
-            saveData();
-            updateDisplay();
-            this.reset();
-            document.getElementById('costBreakdown').style.display = 'none';
-            showToast('Product cost saved successfully!', 'success');
-            
-            return false;
+            initializeFirebaseWithConfig(config);
         }
 
-        function handleSalesSubmit(e) {
+        function initializeFirebaseWithConfig(config) {
+            try {
+                updateSyncStatus('syncing', 'Connecting to Firebase...');
+                
+                // Initialize Firebase
+                firebase.initializeApp(config);
+                db = firebase.firestore();
+                
+                // Hide config panel
+                document.getElementById('firebaseConfig').style.display = 'none';
+                
+                // Set up real-time listeners
+                setupRealtimeListeners();
+                
+                updateSyncStatus('online', 'Connected to Firebase');
+                showToast('Firebase connected successfully!', 'success');
+                isConnected = true;
+                
+                // Enable form buttons
+                document.getElementById('addSaleBtn').disabled = false;
+                document.getElementById('addExpenseBtn').disabled = false;
+                
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                updateSyncStatus('offline', 'Connection failed');
+                showToast('Firebase connection failed: ' + error.message, 'error');
+                
+                // Show config panel again
+                document.getElementById('firebaseConfig').style.display = 'block';
+            }
+        }
+
+        function setupRealtimeListeners() {
+            if (!db) return;
+
+            // Listen to sales transactions
+            db.collection('sales').orderBy('timestamp', 'desc').onSnapshot(function(snapshot) {
+                snapshot.docChanges().forEach(function(change) {
+                    if (change.type === 'added') {
+                        var transaction = change.doc.data();
+                        transaction.id = change.doc.id;
+                        transaction.type = 'Sale';
+                        
+                        // Check if this is a new transaction (not from initial load)
+                        if (!transactions.find(function(t) { return t.id === transaction.id; })) {
+                            transactions.unshift(transaction);
+                            updateDisplay();
+                            
+                            // Highlight new transaction
+                            setTimeout(function() {
+                                highlightNewTransaction(transaction.id);
+                            }, 100);
+                        }
+                    } else if (change.type === 'removed') {
+                        transactions = transactions.filter(function(t) { 
+                            return !(t.id === change.doc.id && t.type === 'Sale'); 
+                        });
+                        updateDisplay();
+                    }
+                });
+            }, function(error) {
+                console.error('Sales listener error:', error);
+                updateSyncStatus('offline', 'Sync error');
+            });
+
+            // Listen to expense transactions
+            db.collection('expenses').orderBy('timestamp', 'desc').onSnapshot(function(snapshot) {
+                snapshot.docChanges().forEach(function(change) {
+                    if (change.type === 'added') {
+                        var transaction = change.doc.data();
+                        transaction.id = change.doc.id;
+                        transaction.type = 'Expense';
+                        
+                        // Check if this is a new transaction
+                        if (!transactions.find(function(t) { return t.id === transaction.id; })) {
+                            transactions.unshift(transaction);
+                            updateDisplay();
+                            
+                            // Highlight new transaction
+                            setTimeout(function() {
+                                highlightNewTransaction(transaction.id);
+                            }, 100);
+                        }
+                    } else if (change.type === 'removed') {
+                        transactions = transactions.filter(function(t) { 
+                            return !(t.id === change.doc.id && t.type === 'Expense'); 
+                        });
+                        updateDisplay();
+                    }
+                });
+            }, function(error) {
+                console.error('Expenses listener error:', error);
+                updateSyncStatus('offline', 'Sync error');
+            });
+        }
+
+        function highlightNewTransaction(transactionId) {
+            var rows = document.querySelectorAll('tr[data-id="' + transactionId + '"]');
+            rows.forEach(function(row) {
+                row.classList.add('new-transaction');
+                setTimeout(function() {
+                    row.classList.remove('new-transaction');
+                }, 2000);
+            });
+        }
+
+        function updateSyncStatus(status, message) {
+            var indicator = document.getElementById('syncIndicator');
+            var statusText = document.getElementById('syncStatus');
+            
+            indicator.className = 'sync-indicator ' + status;
+            statusText.textContent = message;
+        }
+
+        // Sales form handler
+        document.getElementById('salesForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            console.log('Sales form submitted');
+            
+            if (!isConnected) {
+                showToast('Please connect to Firebase first', 'error');
+                return;
+            }
             
             var customerName = document.getElementById('customerName').value.trim();
             var serviceType = document.getElementById('serviceType').value;
@@ -1009,41 +831,43 @@
             
             if (!customerName || !serviceType || !quantity || !unitPrice || !saleDate) {
                 showToast('Please fill in all fields', 'error');
-                return false;
+                return;
             }
             
             var totalAmount = quantity * unitPrice;
-            var productCost = (productCosts[serviceType] || 0) * quantity;
-            
             var transaction = {
-                id: ++transactionId,
                 date: saleDate,
-                type: 'Sale',
                 description: customerName + ' - ' + quantity + 'x ' + serviceType,
                 category: serviceType,
                 amount: totalAmount,
                 customerName: customerName,
                 quantity: quantity,
                 unitPrice: unitPrice,
-                productCost: productCost
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            transactions.unshift(transaction);
-            console.log('Sale added:', transaction);
+            updateSyncStatus('syncing', 'Saving...');
             
-            saveData();
-            updateDisplay();
-            this.reset();
-            setTodayDates();
-            document.getElementById('saleMargin').style.display = 'none';
-            showToast('Sale added successfully!', 'success');
-            
-            return false;
-        }
+            db.collection('sales').add(transaction).then(function() {
+                updateSyncStatus('online', 'Connected');
+                showToast('Sale added successfully!', 'success');
+                document.getElementById('salesForm').reset();
+                setTodayDates();
+            }).catch(function(error) {
+                console.error('Error adding sale:', error);
+                updateSyncStatus('offline', 'Sync error');
+                showToast('Error adding sale: ' + error.message, 'error');
+            });
+        });
 
-        function handleExpenseSubmit(e) {
+        // Expense form handler
+        document.getElementById('expenseForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            console.log('Expense form submitted');
+            
+            if (!isConnected) {
+                showToast('Please connect to Firebase first', 'error');
+                return;
+            }
             
             var description = document.getElementById('expenseDescription').value.trim();
             var category = document.getElementById('expenseCategory').value;
@@ -1052,73 +876,60 @@
             
             if (!description || !category || !amount || !expenseDate) {
                 showToast('Please fill in all fields', 'error');
-                return false;
+                return;
             }
 
             var transaction = {
-                id: ++transactionId,
                 date: expenseDate,
-                type: 'Expense',
                 description: description,
                 category: category,
-                amount: -amount
+                amount: -amount,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            transactions.unshift(transaction);
-            console.log('Expense added:', transaction);
+            updateSyncStatus('syncing', 'Saving...');
             
-            saveData();
-            updateDisplay();
-            this.reset();
-            setTodayDates();
-            showToast('Expense added successfully!', 'success');
-            
-            return false;
-        }
+            db.collection('expenses').add(transaction).then(function() {
+                updateSyncStatus('online', 'Connected');
+                showToast('Expense added successfully!', 'success');
+                document.getElementById('expenseForm').reset();
+                setTodayDates();
+            }).catch(function(error) {
+                console.error('Error adding expense:', error);
+                updateSyncStatus('offline', 'Sync error');
+                showToast('Error adding expense: ' + error.message, 'error');
+            });
+        });
 
         function updateDisplay() {
             updateStats();
-            updateTransactionsList();
-            updateProductsList();
+            updateSalesList();
+            updateExpensesList();
         }
 
         function updateStats() {
             var revenue = 0;
             var expenses = 0;
-            var totalProductCosts = 0;
             var orders = 0;
 
             for (var i = 0; i < transactions.length; i++) {
                 if (transactions[i].type === 'Sale') {
                     revenue += transactions[i].amount;
-                    totalProductCosts += transactions[i].productCost || 0;
                     orders++;
                 } else {
                     expenses += Math.abs(transactions[i].amount);
                 }
             }
             
-            var totalCosts = expenses + totalProductCosts;
-            var profit = revenue - totalCosts;
-            var margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+            var profit = revenue - expenses;
 
             document.getElementById('totalRevenue').textContent = formatCurrency(revenue);
-            document.getElementById('totalExpenses').textContent = formatCurrency(totalCosts);
+            document.getElementById('totalExpenses').textContent = formatCurrency(expenses);
             document.getElementById('netProfit').textContent = formatCurrency(profit);
             document.getElementById('totalOrders').textContent = orders;
-            document.getElementById('profitMargin').textContent = margin.toFixed(1) + '%';
 
-            // Update colors based on values
             var profitElement = document.getElementById('netProfit');
             profitElement.style.color = profit >= 0 ? '#27ae60' : '#e74c3c';
-            
-            var marginElement = document.getElementById('profitMargin');
-            marginElement.style.color = margin >= 0 ? '#27ae60' : '#e74c3c';
-        }
-
-        function updateTransactionsList() {
-            updateSalesList();
-            updateExpensesList();
         }
 
         function updateSalesList() {
@@ -1132,26 +943,21 @@
             }
             
             if (salesData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #666;">No sales yet. Add your first sale above!</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #666;">No sales yet. Add your first sale above!</td></tr>';
                 return;
             }
 
             var html = '';
             for (var i = 0; i < salesData.length; i++) {
                 var t = salesData[i];
-                var productCost = t.productCost || 0;
-                var profit = t.amount - productCost;
-                
-                html += '<tr>';
+                html += '<tr data-id="' + t.id + '">';
                 html += '<td>' + formatDate(t.date) + '</td>';
                 html += '<td>' + (t.customerName || 'N/A') + '</td>';
                 html += '<td>' + t.category + '</td>';
                 html += '<td>' + (t.quantity || 1) + '</td>';
                 html += '<td>' + formatCurrency(t.unitPrice || t.amount) + '</td>';
                 html += '<td class="amount-positive">' + formatCurrency(t.amount) + '</td>';
-                html += '<td class="amount-negative">' + formatCurrency(productCost) + '</td>';
-                html += '<td class="' + (profit >= 0 ? 'amount-positive' : 'amount-negative') + '">' + formatCurrency(profit) + '</td>';
-                html += '<td><button class="delete-btn" onclick="deleteTransaction(' + t.id + ')">Delete</button></td>';
+                html += '<td><button class="delete-btn" onclick="deleteTransaction(\'' + t.id + '\', \'Sale\')">Delete</button></td>';
                 html += '</tr>';
             }
             tbody.innerHTML = html;
@@ -1175,71 +981,128 @@
             var html = '';
             for (var i = 0; i < expensesData.length; i++) {
                 var t = expensesData[i];
-                html += '<tr>';
+                html += '<tr data-id="' + t.id + '">';
                 html += '<td>' + formatDate(t.date) + '</td>';
                 html += '<td>' + t.description + '</td>';
                 html += '<td>' + t.category + '</td>';
                 html += '<td class="amount-negative">' + formatCurrency(Math.abs(t.amount)) + '</td>';
-                html += '<td><button class="delete-btn" onclick="deleteTransaction(' + t.id + ')">Delete</button></td>';
+                html += '<td><button class="delete-btn" onclick="deleteTransaction(\'' + t.id + '\', \'Expense\')">Delete</button></td>';
                 html += '</tr>';
             }
             tbody.innerHTML = html;
         }
 
-        function updateProductsList() {
-            var tbody = document.getElementById('productsList');
-            var productNames = Object.keys(productCosts);
-            
-            if (productNames.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #666;">No product costs set. Add your first product cost above!</td></tr>';
+        function deleteTransaction(id, type) {
+            if (!isConnected) {
+                showToast('Please connect to Firebase first', 'error');
                 return;
             }
 
-            var html = '';
-            for (var i = 0; i < productNames.length; i++) {
-                var productName = productNames[i];
-                var totalCost = productCosts[productName];
+            if (confirm('Are you sure you want to delete this transaction?')) {
+                updateSyncStatus('syncing', 'Deleting...');
                 
-                html += '<tr>';
-                html += '<td>' + productName + '</td>';
-                html += '<td>' + formatCurrency(totalCost * 0.4) + '</td>'; // Estimate breakdown
-                html += '<td>' + formatCurrency(totalCost * 0.4) + '</td>';
-                html += '<td>' + formatCurrency(totalCost * 0.2) + '</td>';
-                html += '<td class="amount-negative">' + formatCurrency(totalCost) + '</td>';
-                html += '<td><button class="delete-btn" onclick="deleteProductCost(\'' + productName + '\')">Delete</button></td>';
-                html += '</tr>';
+                var collection = type === 'Sale' ? 'sales' : 'expenses';
+                
+                db.collection(collection).doc(id).delete().then(function() {
+                    updateSyncStatus('online', 'Connected');
+                    showToast('Transaction deleted successfully!', 'success');
+                }).catch(function(error) {
+                    console.error('Error deleting transaction:', error);
+                    updateSyncStatus('offline', 'Sync error');
+                    showToast('Error deleting transaction: ' + error.message, 'error');
+                });
             }
-            tbody.innerHTML = html;
         }
 
-        function deleteTransaction(id) {
-            transactions = transactions.filter(function(t) { return t.id !== id; });
-            saveData();
-            updateDisplay();
-            showToast('Transaction deleted', 'success');
+        function clearSalesData() {
+            if (!isConnected) {
+                showToast('Please connect to Firebase first', 'error');
+                return;
+            }
+
+            if (confirm('Are you sure you want to clear all sales data? This cannot be undone.')) {
+                updateSyncStatus('syncing', 'Clearing sales...');
+                
+                var batch = db.batch();
+                var salesData = transactions.filter(function(t) { return t.type === 'Sale'; });
+                
+                salesData.forEach(function(transaction) {
+                    var docRef = db.collection('sales').doc(transaction.id);
+                    batch.delete(docRef);
+                });
+                
+                batch.commit().then(function() {
+                    updateSyncStatus('online', 'Connected');
+                    showToast('All sales data cleared successfully!', 'success');
+                }).catch(function(error) {
+                    console.error('Error clearing sales:', error);
+                    updateSyncStatus('offline', 'Sync error');
+                    showToast('Error clearing sales: ' + error.message, 'error');
+                });
+            }
         }
 
-        function deleteProductCost(productName) {
-            delete productCosts[productName];
-            saveData();
-            updateDisplay();
-            showToast('Product cost deleted', 'success');
+        function clearExpensesData() {
+            if (!isConnected) {
+                showToast('Please connect to Firebase first', 'error');
+                return;
+            }
+
+            if (confirm('Are you sure you want to clear all expenses data? This cannot be undone.')) {
+                updateSyncStatus('syncing', 'Clearing expenses...');
+                
+                var batch = db.batch();
+                var expensesData = transactions.filter(function(t) { return t.type === 'Expense'; });
+                
+                expensesData.forEach(function(transaction) {
+                    var docRef = db.collection('expenses').doc(transaction.id);
+                    batch.delete(docRef);
+                });
+                
+                batch.commit().then(function() {
+                    updateSyncStatus('online', 'Connected');
+                    showToast('All expenses data cleared successfully!', 'success');
+                }).catch(function(error) {
+                    console.error('Error clearing expenses:', error);
+                    updateSyncStatus('offline', 'Sync error');
+                    showToast('Error clearing expenses: ' + error.message, 'error');
+                });
+            }
+        }
+
+        function clearAllData() {
+            if (!isConnected) {
+                showToast('Please connect to Firebase first', 'error');
+                return;
+            }
+
+            if (confirm('Are you sure you want to clear ALL data? This cannot be undone.')) {
+                updateSyncStatus('syncing', 'Clearing all data...');
+                
+                var batch = db.batch();
+                
+                transactions.forEach(function(transaction) {
+                    var collection = transaction.type === 'Sale' ? 'sales' : 'expenses';
+                    var docRef = db.collection(collection).doc(transaction.id);
+                    batch.delete(docRef);
+                });
+                
+                batch.commit().then(function() {
+                    updateSyncStatus('online', 'Connected');
+                    showToast('All data cleared successfully!', 'success');
+                }).catch(function(error) {
+                    console.error('Error clearing all data:', error);
+                    updateSyncStatus('offline', 'Sync error');
+                    showToast('Error clearing all data: ' + error.message, 'error');
+                });
+            }
         }
 
         function exportToCSV(type) {
             var dataToExport = [];
             var filename = '';
             
-            if (type === 'products') {
-                var productNames = Object.keys(productCosts);
-                dataToExport = productNames.map(function(name) {
-                    return {
-                        name: name,
-                        cost: productCosts[name]
-                    };
-                });
-                filename = 'printing_products_' + getCurrentDate() + '.csv';
-            } else if (type === 'sales') {
+            if (type === 'sales') {
                 dataToExport = transactions.filter(function(t) { return t.type === 'Sale'; });
                 filename = 'printing_sales_' + getCurrentDate() + '.csv';
             } else if (type === 'expenses') {
@@ -1257,21 +1120,13 @@
             
             var csvContent = '';
             
-            if (type === 'products') {
-                csvContent = 'Product Name,Total Cost\n';
-                for (var i = 0; i < dataToExport.length; i++) {
-                    var p = dataToExport[i];
-                    csvContent += '"' + p.name.replace(/"/g, '""') + '",' + p.cost + '\n';
-                }
-            } else if (type === 'sales') {
-                csvContent = 'Date,Customer Name,Service Type,Quantity,Unit Price,Total Amount,Product Cost,Profit\n';
+            if (type === 'sales') {
+                csvContent = 'Date,Customer Name,Service Type,Quantity,Unit Price,Total Amount\n';
                 for (var i = 0; i < dataToExport.length; i++) {
                     var t = dataToExport[i];
                     var customerName = (t.customerName || 'N/A').replace(/"/g, '""');
                     var serviceType = (t.category || 'N/A').replace(/"/g, '""');
-                    var productCost = t.productCost || 0;
-                    var profit = t.amount - productCost;
-                    csvContent += t.date + ',"' + customerName + '","' + serviceType + '",' + (t.quantity || 1) + ',' + (t.unitPrice || t.amount) + ',' + t.amount + ',' + productCost + ',' + profit + '\n';
+                    csvContent += t.date + ',"' + customerName + '","' + serviceType + '",' + (t.quantity || 1) + ',' + (t.unitPrice || t.amount) + ',' + t.amount + '\n';
                 }
             } else if (type === 'expenses') {
                 csvContent = 'Date,Description,Category,Amount\n';
@@ -1282,15 +1137,13 @@
                     csvContent += t.date + ',"' + description + '","' + category + '",' + Math.abs(t.amount) + '\n';
                 }
             } else {
-                csvContent = 'Date,Type,Description,Category,Amount,Product Cost,Profit\n';
+                csvContent = 'Date,Type,Description,Category,Amount\n';
                 for (var i = 0; i < dataToExport.length; i++) {
                     var t = dataToExport[i];
                     var description = (t.description || 'N/A').replace(/"/g, '""');
                     var category = (t.category || 'N/A').replace(/"/g, '""');
                     var amount = t.type === 'Sale' ? t.amount : Math.abs(t.amount);
-                    var productCost = t.productCost || 0;
-                    var profit = t.type === 'Sale' ? (t.amount - productCost) : 0;
-                    csvContent += t.date + ',"' + t.type + '","' + description + '","' + category + '",' + amount + ',' + productCost + ',' + profit + '\n';
+                    csvContent += t.date + ',"' + t.type + '","' + description + '","' + category + '",' + amount + '\n';
                 }
             }
             
@@ -1317,60 +1170,26 @@
             var day = String(now.getDate()).padStart(2, '0');
             return year + '-' + month + '-' + day;
         }
-        
-        function clearProductsData() {
-            if (confirm('Are you sure you want to clear all product costs? This cannot be undone.')) {
-                productCosts = {};
-                saveData();
-                updateDisplay();
-                showToast('All product costs have been cleared.', 'success');
-            }
-        }
 
-        function clearSalesData() {
-            if (confirm('Are you sure you want to clear all sales data? This cannot be undone.')) {
-                var newTransactions = [];
-                for (var i = 0; i < transactions.length; i++) {
-                    if (transactions[i].type !== 'Sale') {
-                        newTransactions.push(transactions[i]);
-                    }
-                }
-                transactions = newTransactions;
-                saveData();
-                updateDisplay();
-                showToast('All sales data has been cleared.', 'success');
-            }
-        }
-
-        function clearExpensesData() {
-            if (confirm('Are you sure you want to clear all expenses data? This cannot be undone.')) {
-                var newTransactions = [];
-                for (var i = 0; i < transactions.length; i++) {
-                    if (transactions[i].type !== 'Expense') {
-                        newTransactions.push(transactions[i]);
-                    }
-                }
-                transactions = newTransactions;
-                saveData();
-                updateDisplay();
-                showToast('All expenses data has been cleared.', 'success');
-            }
-        }
-        
-        function clearAllData() {
-            if (confirm('Are you sure you want to clear all data including product costs? This cannot be undone.')) {
-                transactions = [];
-                productCosts = {};
-                transactionId = 0;
-                saveData();
-                updateDisplay();
-                showToast('All data has been cleared.', 'success');
-            }
+        function loadLocalData() {
+            // This function can be used to load offline backup data if needed
+            console.log('Loading local backup data...');
         }
 
         function formatCurrency(amount) {
-            return '₱' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '                    } else {
-                        loadLocal,');
+            return '₱' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '        // Expense form handler
+        document.getElementById('expenseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!isConnected) {
+                showToast('Please connect to Firebase first', 'error');
+                return;
+            }
+            
+            var description = document.getElementById('expenseDescription').value.trim();
+            var category = document.getElementById('expenseCategory').value;
+            var amount = parseFloat(document.getElementById('expenseAmount').value);
+            var expenseDate =,');
         }
 
         function formatDate(dateStr) {
@@ -1401,6 +1220,10 @@
                 }, 300);
             }, 3000);
         }
+
+        // Disable forms initially until Firebase is connected
+        document.getElementById('addSaleBtn').disabled = true;
+        document.getElementById('addExpenseBtn').disabled = true;
     </script>
 </body>
 </html>
