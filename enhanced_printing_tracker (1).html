@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printing Business Tracker Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .sync-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sync-status.online {
+            background: rgba(39, 174, 96, 0.9);
+            color: white;
+        }
+
+        .sync-status.offline {
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+        }
+
+        .sync-status.syncing {
+            background: rgba(243, 156, 18, 0.9);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: rgba(52, 152, 219, 0.05);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card.revenue { border-left-color: #27ae60; }
+        .stat-card.expenses { border-left-color: #e74c3c; }
+        .stat-card.profit { border-left-color: #f39c12; }
+        .stat-card.orders { border-left-color: #9b59b6; }
+        .stat-card.margin { border-left-color: #3498db; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-triple {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-expense {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .btn-expense:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-product {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+
+        .btn-product:hover {
+            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            font-size: 12px;
+            padding: 10px 15px;
+        }
+
+        .btn-export:hover {
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+        }
+
+        .btn-clear:hover {
+            box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
+        }
+
+        .transactions {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .transaction-table th {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .transaction-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .transaction-table tr:hover {
+            background: rgba(52, 152, 219, 0.05);
+        }
+
+        .amount-positive {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .amount-negative {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+
+        .cost-breakdown {
+            background: rgba(52, 152, 219, 0.05);
+            border: 1px solid rgba(52, 152, 219, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .cost-item.total {
+            border-top: 1px solid #3498db;
+            padding-top: 10px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .profit-margin {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid rgba(39, 174, 96, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .profit-margin.negative {
+            background: rgba(231, 76, 60, 0.1);
+            border-color: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            max-width: 300px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+        .toast.warning { background: #f39c12; }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                padding: 20px;
+            }
+            
+            .form-row, .form-triple {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .sync-status {
+                position: static;
+                margin-top: 10px;
+                display: inline-block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="sync-status" id="syncStatus">Offline</div>
+            <h1>🖨️ Printing Business Tracker Pro</h1>
+            <p>Track sales, expenses, product costs, and profits with cloud sync</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card revenue">
+                <div class="stat-value" id="totalRevenue">₱0.00</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card expenses">
+                <div class="stat-value" id="totalExpenses">₱0.00</div>
+                <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-card profit">
+                <div class="stat-value" id="netProfit">₱0.00</div>
+                <div class="stat-label">Net Profit</div>
+            </div>
+            <div class="stat-card orders">
+                <div class="stat-value" id="totalOrders">0</div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+            <div class="stat-card margin">
+                <div class="stat-value" id="profitMargin">0%</div>
+                <div class="stat-label">Profit Margin</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="section">
+                <h2>🛍️ Product Cost Management</h2>
+                <form id="productForm">
+                    <div class="form-group">
+                        <label for="productName">Product Name</label>
+                        <select id="productName" required>
+                            <option value="">Select Product</option>
+                            <option value="Business Cards">Business Cards</option>
+                            <option value="Flyers">Flyers</option>
+                            <option value="Banners">Banners</option>
+                            <option value="Brochures">Brochures</option>
+                            <option value="Posters">Posters</option>
+                            <option value="Invitations">Invitations</option>
+                            <option value="Stickers">Stickers</option>
+                            <option value="ID Cards">ID Cards</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-triple">
+                        <div class="form-group">
+                            <label for="materialCost">Material Cost (₱)</label>
+                            <input type="number" id="materialCost" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="laborCost">Labor Cost (₱)</label>
+                            <input type="number" id="laborCost" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="overheadCost">Overhead (₱)</label>
+                            <input type="number" id="overheadCost" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="cost-breakdown" id="costBreakdown" style="display: none;">
+                        <div class="cost-item">
+                            <span>Material Cost:</span>
+                            <span id="displayMaterial">₱0.00</span>
+                        </div>
+                        <div class="cost-item">
+                            <span>Labor Cost:</span>
+                            <span id="displayLabor">₱0.00</span>
+                        </div>
+                        <div class="cost-item">
+                            <span>Overhead Cost:</span>
+                            <span id="displayOverhead">₱0.00</span>
+                        </div>
+                        <div class="cost-item total">
+                            <span>Total Cost:</span>
+                            <span id="displayTotal">₱0.00</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-product">Save Product Cost</button>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>📈 Add Sale</h2>
+                <form id="salesForm">
+                    <div class="form-group">
+                        <label for="customerName">Customer Name</label>
+                        <input type="text" id="customerName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="serviceType">Service Type</label>
+                            <select id="serviceType" required>
+                                <option value="">Select Service</option>
+                                <option value="Business Cards">Business Cards</option>
+                                <option value="Flyers">Flyers</option>
+                                <option value="Banners">Banners</option>
+                                <option value="Brochures">Brochures</option>
+                                <option value="Posters">Posters</option>
+                                <option value="Invitations">Invitations</option>
+                                <option value="Stickers">Stickers</option>
+                                <option value="ID Cards">ID Cards</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" id="quantity" min="1" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="unitPrice">Unit Price (₱)</label>
+                            <input type="number" id="unitPrice" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="saleDate">Date</label>
+                            <input type="date" id="saleDate" required>
+                        </div>
+                    </div>
+                    <div class="profit-margin" id="saleMargin" style="display: none;">
+                        <span>Estimated Profit Margin: <span id="marginValue">0%</span></span>
+                    </div>
+                    <button type="submit" class="btn">Add Sale</button>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>📊 Add Expense</h2>
+                <form id="expenseForm">
+                    <div class="form-group">
+                        <label for="expenseDescription">Description</label>
+                        <input type="text" id="expenseDescription" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expenseCategory">Category</label>
+                            <select id="expenseCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="Paper & Materials">Paper & Materials</option>
+                                <option value="Ink & Toner">Ink & Toner</option>
+                                <option value="Equipment">Equipment</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Utilities">Utilities</option>
+                                <option value="Rent">Rent</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Transportation">Transportation</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseAmount">Amount (₱)</label>
+                            <input type="number" id="expenseAmount" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDate">Date</label>
+                        <input type="date" id="expenseDate" required>
+                    </div>
+                    <button type="submit" class="btn btn-expense">Add Expense</button>
+                </form>
+            </div>
+
+            <div class="section transactions">
+                <h2>🛍️ Product Costs</h2>
+                <div class="export-buttons">
+                    <button class="btn btn-export" onclick="exportToCSV('products')">Export Products to CSV</button>
+                    <button class="btn btn-clear" onclick="clearProductsData()">Clear Products</button>
+                </div>
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Material Cost</th>
+                            <th>Labor Cost</th>
+                            <th>Overhead</th>
+                            <th>Total Cost</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsList">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 30px; color: #666;">
+                                No product costs set. Add your first product cost above!
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section transactions">
+                <h2>💰 Sales Transactions</h2>
+                <div class="export-buttons">
+                    <button class="btn btn-export" onclick="exportToCSV('sales')">Export Sales to CSV</button>
+                    <button class="btn btn-clear" onclick="clearSalesData()">Clear Sales</button>
+                </div>
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Service</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                            <th>Cost</th>
+                            <th>Profit</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesList">
+                        <tr>
+                            <td colspan="9" style="text-align: center; padding: 30px; color: #666;">
+                                No sales yet. Add your first sale above!
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section transactions">
+                <h2>📊 Expense Transactions</h2>
+                <div class="export-buttons">
+                    <button class="btn btn-export" onclick="exportToCSV('expenses')">Export Expenses to CSV</button>
+                    <button class="btn btn-clear" onclick="clearExpensesData()">Clear Expenses</button>
+                </div>
+                <table class="transaction-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesList">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 30px; color: #666;">
+                                No expenses yet. Add your first expense above!
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section transactions">
+                <h2>📁 Export All Data</h2>
+                <div class="export-buttons">
+                    <button class="btn btn-export" onclick="exportToCSV('all')">Export All to CSV</button>
+                    <button class="btn btn-clear" onclick="clearAllData()">Clear All Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-firestore-compat.min.js"></script>
+
+    <script>
+        // Firebase configuration
+        var firebaseConfig = {
+            apiKey: "AIzaSyCAQkleTFWyoEcCNIeYzpZ1NwcEHv5NN0U",
+            authDomain: "flame143-a5106.firebaseapp.com",
+            projectId: "flame143-a5106",
+            storageBucket: "flame143-a5106.firebasestorage.app",
+            messagingSenderId: "243471809617",
+            appId: "1:243471809617:web:8ea9a5e8de72c4f5b6cc70",
+            measurementId: "G-XN9SZ6F94M"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+
+        // Global variables
+        var transactions = [];
+        var productCosts = {};
+        var transactionId = 0;
+        var isOnline = navigator.onLine;
+        var syncQueue = [];
+
+        // Initialize app when page loads
+        window.addEventListener('load', function() {
+            setupEventListeners();
+            loadData();
+            updateDisplay();
+            setTodayDates();
+            updateSyncStatus();
+            setupProductCostCalculator();
+        });
+
+        function setupEventListeners() {
+            // Online/offline status
+            window.addEventListener('online', function() {
+                isOnline = true;
+                updateSyncStatus();
+                syncToFirebase();
+            });
+
+            window.addEventListener('offline', function() {
+                isOnline = false;
+                updateSyncStatus();
+            });
+
+            // Form event listeners
+            document.getElementById('productForm').addEventListener('submit', handleProductSubmit);
+            document.getElementById('salesForm').addEventListener('submit', handleSalesSubmit);
+            document.getElementById('expenseForm').addEventListener('submit', handleExpenseSubmit);
+        }
+
+        function setupProductCostCalculator() {
+            var materialCost = document.getElementById('materialCost');
+            var laborCost = document.getElementById('laborCost');
+            var overheadCost = document.getElementById('overheadCost');
+
+            [materialCost, laborCost, overheadCost].forEach(function(input) {
+                input.addEventListener('input', updateCostBreakdown);
+            });
+
+            // Sales form calculator
+            var serviceType = document.getElementById('serviceType');
+            var quantity = document.getElementById('quantity');
+            var unitPrice = document.getElementById('unitPrice');
+
+            [serviceType, quantity, unitPrice].forEach(function(input) {
+                input.addEventListener('input', calculateSaleMargin);
+            });
+        }
+
+        function updateCostBreakdown() {
+            var material = parseFloat(document.getElementById('materialCost').value) || 0;
+            var labor = parseFloat(document.getElementById('laborCost').value) || 0;
+            var overhead = parseFloat(document.getElementById('overheadCost').value) || 0;
+            var total = material + labor + overhead;
+
+            if (material > 0 || labor > 0 || overhead > 0) {
+                document.getElementById('costBreakdown').style.display = 'block';
+                document.getElementById('displayMaterial').textContent = formatCurrency(material);
+                document.getElementById('displayLabor').textContent = formatCurrency(labor);
+                document.getElementById('displayOverhead').textContent = formatCurrency(overhead);
+                document.getElementById('displayTotal').textContent = formatCurrency(total);
+            } else {
+                document.getElementById('costBreakdown').style.display = 'none';
+            }
+        }
+
+        function calculateSaleMargin() {
+            var serviceType = document.getElementById('serviceType').value;
+            var quantity = parseInt(document.getElementById('quantity').value) || 1;
+            var unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
+
+            if (!serviceType || !productCosts[serviceType] || unitPrice === 0) {
+                document.getElementById('saleMargin').style.display = 'none';
+                return;
+            }
+
+            var totalCost = productCosts[serviceType] * quantity;
+            var totalRevenue = unitPrice * quantity;
+            var profit = totalRevenue - totalCost;
+            var margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+
+            var marginElement = document.getElementById('saleMargin');
+            var marginValue = document.getElementById('marginValue');
+
+            marginElement.style.display = 'block';
+            marginValue.textContent = margin.toFixed(1) + '%';
+
+            if (margin < 0) {
+                marginElement.className = 'profit-margin negative';
+            } else {
+                marginElement.className = 'profit-margin';
+            }
+        }
+
+        function updateSyncStatus() {
+            var status = document.getElementById('syncStatus');
+            if (isOnline) {
+                status.textContent = 'Online';
+                status.className = 'sync-status online';
+            } else {
+                status.textContent = 'Offline';
+                status.className = 'sync-status offline';
+            }
+        }
+
+        function setSyncingStatus() {
+            var status = document.getElementById('syncStatus');
+            status.textContent = 'Syncing...';
+            status.className = 'sync-status syncing';
+        }
+
+        function syncToFirebase() {
+            if (!isOnline) return;
+
+            setSyncingStatus();
+            
+            var data = {
+                transactions: transactions,
+                productCosts: productCosts,
+                transactionId: transactionId,
+                lastSynced: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection('printingData').doc('businessData').set(data)
+                .then(function() {
+                    updateSyncStatus();
+                    showToast('Data synced to cloud!', 'success');
+                })
+                .catch(function(error) {
+                    console.error('Sync error:', error);
+                    updateSyncStatus();
+                    showToast('Sync failed. Data saved locally.', 'warning');
+                });
+        }
+
+        function loadFromFirebase() {
+            if (!isOnline) {
+                loadLocalData();
+                return;
+            }
+
+            setSyncingStatus();
+            
+            db.collection('printingData').doc('businessData').get()
+                .then(function(doc) {
+                    if (doc.exists) {
+                        var data = doc.data();
+                        transactions = data.transactions || [];
+                        productCosts = data.productCosts || {};
+                        transactionId = data.transactionId || 0;
+                        updateDisplay();
+                        showToast('Data loaded from cloud!', 'success');
+                    } else {
+                        loadLocalData();
+                    }
+                    updateSyncStatus();
+                })
+                .catch(function(error) {
+                    console.error('Load error:', error);
+                    loadLocalData();
+                    updateSyncStatus();
+                    showToast('Loading from local storage', 'warning');
+                });
+        }
+
+        function loadData() {
+            if (isOnline) {
+                loadFromFirebase();
+            } else {
+                loadLocalData();
+            }
+        }
+
+        function loadLocalData() {
+            try {
+                var data = null;
+                
+                if (typeof Storage !== "undefined" && window.localStorage) {
+                    var stored = localStorage.getItem('printingData');
+                    if (stored) {
+                        data = JSON.parse(stored);
+                    }
+                }
+                
+                if (data) {
+                    transactions = data.transactions || [];
+                    productCosts = data.productCosts || {};
+                    transactionId = data.transactionId || 0;
+                }
+                
+            } catch (error) {
+                console.error('Local load error:', error);
+                transactions = [];
+                productCosts = {};
+                transactionId = 0;
+            }
+        }
+
+        function saveData() {
+            // Save locally first
+            try {
+                var data = {
+                    transactions: transactions,
+                    productCosts: productCosts,
+                    transactionId: transactionId,
+                    lastSaved: new Date().toISOString()
+                };
+                
+                if (typeof Storage !== "undefined" && window.localStorage) {
+                    localStorage.setItem('printingData', JSON.stringify(data));
+                }
+                
+            } catch (error) {
+                console.error('Local save error:', error);
+            }
+
+            // Sync to Firebase if online
+            if (isOnline) {
+                syncToFirebase();
+            }
+        }
+
+        function setTodayDates() {
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('saleDate').value = today;
+            document.getElementById('expenseDate').value = today;
+        }
+
+        function handleProductSubmit(e) {
+            e.preventDefault();
+            
+            var productName = document.getElementById('productName').value;
+            var materialCost = parseFloat(document.getElementById('materialCost').value) || 0;
+            var laborCost = parseFloat(document.getElementById('laborCost').value) || 0;
+            var overheadCost = parseFloat(document.getElementById('overheadCost').value) || 0;
+            
+            if (!productName) {
+                showToast('Please select a product name', 'error');
+                return;
+            }
+            
+            var totalCost = materialCost + laborCost + overheadCost;
+            productCosts[productName] = totalCost;
+            
+            saveData();
+            updateDisplay();
+            this.reset();
+            document.getElementById('costBreakdown').style.display = 'none';
+            showToast('Product cost saved successfully!', 'success');
+        }
+
+        function handleSalesSubmit(e) {
+            e.preventDefault();
+            
+            var customerName = document.getElementById('customerName').value.trim();
+            var serviceType = document.getElementById('serviceType').value;
+            var quantity = parseInt(document.getElementById('quantity').value);
+            var unitPrice = parseFloat(document.getElementById('unitPrice').value);
+            var saleDate = document.getElementById('saleDate').value;
+            
+            if (!customerName || !serviceType || !quantity || !unitPrice || !saleDate) {
+                showToast('Please fill in all fields', 'error');
+                return;
+            }
+            
+            var totalAmount = quantity * unitPrice;
+            var productCost = (productCosts[serviceType] || 0) * quantity;
+            
+            var transaction = {
+                id: ++transactionId,
+                date: saleDate,
+                type: 'Sale',
+                description: customerName + ' - ' + quantity + 'x ' + serviceType,
+                category: serviceType,
+                amount: totalAmount,
+                customerName: customerName,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                productCost: productCost
+            };
+
+            transactions.unshift(transaction);
+            saveData();
+            updateDisplay();
+            this.reset();
+            setTodayDates();
+            document.getElementById('saleMargin').style.display = 'none';
+            showToast('Sale added successfully!', 'success');
+        }
+
+        function handleExpenseSubmit(e) {
+            e.preventDefault();
+            
+            var description = document.getElementById('expenseDescription').value.trim();
+            var category = document.getElementById('expenseCategory').value;
+            var amount = parseFloat(document.getElementById('expenseAmount').value);
+            var expenseDate = document.getElementById('expenseDate').value;
+            
+            if (!description || !category || !amount || !expenseDate) {
+                showToast('Please fill in all fields', 'error');
+                return;
+            }
+
+            var transaction = {
+                id: ++transactionId,
+                date: expenseDate,
+                type: 'Expense',
+                description: description,
+                category: category,
+                amount: -amount
+            };
+
+            transactions.unshift(transaction);
+            saveData();
+            updateDisplay();
+            this.reset();
+            setTodayDates();
+            showToast('Expense added successfully!', 'success');
+        }
+
+        function updateDisplay() {
+            updateStats();
+            updateTransactionsList();
+            updateProductsList();
+        }
+
+        function updateStats() {
+            var revenue = 0;
+            var expenses = 0;
+            var totalProductCosts = 0;
+            var orders = 0;
+
+            for (var i = 0; i < transactions.length; i++) {
+                if (transactions[i].type === 'Sale') {
+                    revenue += transactions[i].amount;
+                    totalProductCosts += transactions[i].productCost || 0;
+                    orders++;
+                } else {
+                    expenses += Math.abs(transactions[i].amount);
+                }
+            }
+            
+            var totalCosts = expenses + totalProductCosts;
+            var profit = revenue - totalCosts;
+            var margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+            document.getElementById('totalRevenue').textContent = formatCurrency(revenue);
+            document.getElementById('totalExpenses').textContent = formatCurrency(totalCosts);
+            document.getElementById('netProfit').textContent = formatCurrency(profit);
+            document.getElementById('totalOrders').textContent = orders;
+            document.getElementById('profitMargin').textContent = margin.toFixed(1) + '%';
+
+            // Update colors based on values
+            var profitElement = document.getElementById('netProfit');
+            profitElement.style.color = profit >= 0 ? '#27ae60' : '#e74c3c';
+            
+            var marginElement = document.getElementById('profitMargin');
+            marginElement.style.color = margin >= 0 ? '#27ae60' : '#e74c3c';
+        }
+
+        function updateTransactionsList() {
+            updateSalesList();
+            updateExpensesList();
+        }
+
+        function updateSalesList() {
+            var tbody = document.getElementById('salesList');
+            var salesData = [];
+            
+            for (var i = 0; i < transactions.length; i++) {
+                if (transactions[i].type === 'Sale') {
+                    salesData.push(transactions[i]);
+                }
+            }
+            
+            if (salesData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #666;">No sales yet. Add your first sale above!</td></tr>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < salesData.length; i++) {
+                var t = salesData[i];
+                var productCost = t.productCost || 0;
+                var profit = t.amount - productCost;
+                
+                html += '<tr>';
+                html += '<td>' + formatDate(t.date) + '</td>';
+                html += '<td>' + (t.customerName || 'N/A') + '</td>';
+                html += '<td>' + t.category + '</td>';
+                html += '<td>' + (t.quantity || 1) + '</td>';
+                html += '<td>' + formatCurrency(t.unitPrice || t.amount) + '</td>';
+                html += '<td class="amount-positive">' + formatCurrency(t.amount) + '</td>';
+                html += '<td class="amount-negative">' + formatCurrency(productCost) + '</td>';
+                html += '<td class="' + (profit >= 0 ? 'amount-positive' : 'amount-negative') + '">' + formatCurrency(profit) + '</td>';
+                html += '<td><button class="delete-btn" onclick="deleteTransaction(' + t.id + ')">Delete</button></td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+        }
+
+        function updateExpensesList() {
+            var tbody = document.getElementById('expensesList');
+            var expensesData = [];
+            
+            for (var i = 0; i < transactions.length; i++) {
+                if (transactions[i].type === 'Expense') {
+                    expensesData.push(transactions[i]);
+                }
+            }
+            
+            if (expensesData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color: #666;">No expenses yet. Add your first expense above!</td></tr>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < expensesData.length; i++) {
+                var t = expensesData[i];
+                html += '<tr>';
+                html += '<td>' + formatDate(t.date) + '</td>';
+                html += '<td>' + t.description + '</td>';
+                html += '<td>' + t.category + '</td>';
+                html += '<td class="amount-negative">' + formatCurrency(Math.abs(t.amount)) + '</td>';
+                html += '<td><button class="delete-btn" onclick="deleteTransaction(' + t.id + ')">Delete</button></td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+        }
+
+        function updateProductsList() {
+            var tbody = document.getElementById('productsList');
+            var productNames = Object.keys(productCosts);
+            
+            if (productNames.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px; color: #666;">No product costs set. Add your first product cost above!</td></tr>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < productNames.length; i++) {
+                var productName = productNames[i];
+                var totalCost = productCosts[productName];
+                
+                html += '<tr>';
+                html += '<td>' + productName + '</td>';
+                html += '<td>' + formatCurrency(totalCost * 0.4) + '</td>'; // Estimate breakdown
+                html += '<td>' + formatCurrency(totalCost * 0.4) + '</td>';
+                html += '<td>' + formatCurrency(totalCost * 0.2) + '</td>';
+                html += '<td class="amount-negative">' + formatCurrency(totalCost) + '</td>';
+                html += '<td><button class="delete-btn" onclick="deleteProductCost(\'' + productName + '\')">Delete</button></td>';
+                html += '</tr>';
+            }
+            tbody.innerHTML = html;
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(function(t) { return t.id !== id; });
+            saveData();
+            updateDisplay();
+            showToast('Transaction deleted', 'success');
+        }
+
+        function deleteProductCost(productName) {
+            delete productCosts[productName];
+            saveData();
+            updateDisplay();
+            showToast('Product cost deleted', 'success');
+        }
+
+        function exportToCSV(type) {
+            var dataToExport = [];
+            var filename = '';
+            
+            if (type === 'products') {
+                var productNames = Object.keys(productCosts);
+                dataToExport = productNames.map(function(name) {
+                    return {
+                        name: name,
+                        cost: productCosts[name]
+                    };
+                });
+                filename = 'printing_products_' + getCurrentDate() + '.csv';
+            } else if (type === 'sales') {
+                dataToExport = transactions.filter(function(t) { return t.type === 'Sale'; });
+                filename = 'printing_sales_' + getCurrentDate() + '.csv';
+            } else if (type === 'expenses') {
+                dataToExport = transactions.filter(function(t) { return t.type === 'Expense'; });
+                filename = 'printing_expenses_' + getCurrentDate() + '.csv';
+            } else {
+                dataToExport = transactions;
+                filename = 'printing_all_transactions_' + getCurrentDate() + '.csv';
+            }
+            
+            if (dataToExport.length === 0) {
+                showToast('No data to export for ' + type + '!', 'warning');
+                return;
+            }
+            
+            var csvContent = '';
+            
+            if (type === 'products') {
+                csvContent = 'Product Name,Total Cost\n';
+                for (var i = 0; i < dataToExport.length; i++) {
+                    var p = dataToExport[i];
+                    csvContent += '"' + p.name.replace(/"/g, '""') + '",' + p.cost + '\n';
+                }
+            } else if (type === 'sales') {
+                csvContent = 'Date,Customer Name,Service Type,Quantity,Unit Price,Total Amount,Product Cost,Profit\n';
+                for (var i = 0; i < dataToExport.length; i++) {
+                    var t = dataToExport[i];
+                    var customerName = (t.customerName || 'N/A').replace(/"/g, '""');
+                    var serviceType = (t.category || 'N/A').replace(/"/g, '""');
+                    var productCost = t.productCost || 0;
+                    var profit = t.amount - productCost;
+                    csvContent += t.date + ',"' + customerName + '","' + serviceType + '",' + (t.quantity || 1) + ',' + (t.unitPrice || t.amount) + ',' + t.amount + ',' + productCost + ',' + profit + '\n';
+                }
+            } else if (type === 'expenses') {
+                csvContent = 'Date,Description,Category,Amount\n';
+                for (var i = 0; i < dataToExport.length; i++) {
+                    var t = dataToExport[i];
+                    var description = (t.description || 'N/A').replace(/"/g, '""');
+                    var category = (t.category || 'N/A').replace(/"/g, '""');
+                    csvContent += t.date + ',"' + description + '","' + category + '",' + Math.abs(t.amount) + '\n';
+                }
+            } else {
+                csvContent = 'Date,Type,Description,Category,Amount,Product Cost,Profit\n';
+                for (var i = 0; i < dataToExport.length; i++) {
+                    var t = dataToExport[i];
+                    var description = (t.description || 'N/A').replace(/"/g, '""');
+                    var category = (t.category || 'N/A').replace(/"/g, '""');
+                    var amount = t.type === 'Sale' ? t.amount : Math.abs(t.amount);
+                    var productCost = t.productCost || 0;
+                    var profit = t.type === 'Sale' ? (t.amount - productCost) : 0;
+                    csvContent += t.date + ',"' + t.type + '","' + description + '","' + category + '",' + amount + ',' + productCost + ',' + profit + '\n';
+                }
+            }
+            
+            downloadCSV(csvContent, filename);
+            showToast('Export successful!', 'success');
+        }
+        
+        function downloadCSV(csvContent, filename) {
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            var url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function getCurrentDate() {
+            var now = new Date();
+            var year = now.getFullYear();
+            var month = String(now.getMonth() + 1).padStart(2, '0');
+            var day = String(now.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+        
+        function clearProductsData() {
+            if (confirm('Are you sure you want to clear all product costs? This cannot be undone.')) {
+                productCosts = {};
+                saveData();
+                updateDisplay();
+                showToast('All product costs have been cleared.', 'success');
+            }
+        }
+
+        function clearSalesData() {
+            if (confirm('Are you sure you want to clear all sales data? This cannot be undone.')) {
+                var newTransactions = [];
+                for (var i = 0; i < transactions.length; i++) {
+                    if (transactions[i].type !== 'Sale') {
+                        newTransactions.push(transactions[i]);
+                    }
+                }
+                transactions = newTransactions;
+                saveData();
+                updateDisplay();
+                showToast('All sales data has been cleared.', 'success');
+            }
+        }
+
+        function clearExpensesData() {
+            if (confirm('Are you sure you want to clear all expenses data? This cannot be undone.')) {
+                var newTransactions = [];
+                for (var i = 0; i < transactions.length; i++) {
+                    if (transactions[i].type !== 'Expense') {
+                        newTransactions.push(transactions[i]);
+                    }
+                }
+                transactions = newTransactions;
+                saveData();
+                updateDisplay();
+                showToast('All expenses data has been cleared.', 'success');
+            }
+        }
+        
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data including product costs? This cannot be undone.')) {
+                transactions = [];
+                productCosts = {};
+                transactionId = 0;
+                saveData();
+                updateDisplay();
+                showToast('All data has been cleared.', 'success');
+            }
+        }
+
+        function formatCurrency(amount) {
+            return '₱' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '                    } else {
+                        loadLocal,');
+        }
+
+        function formatDate(dateStr) {
+            var date = new Date(dateStr);
+            return date.toLocaleDateString('en-PH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showToast(message, type) {
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(function() {
+                toast.classList.add('show');
+            }, 100);
+            
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
